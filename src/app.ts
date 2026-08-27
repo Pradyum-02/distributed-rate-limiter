@@ -1,3 +1,5 @@
+// this app.ts is designed to use for sliding window protocol
+
 import { connectRedis, redisClient } from "./redis/client.js";
 import { FixedWindowLimiter } from "./algorithms/fixed-window.js";
 
