@@ -1,4 +1,4 @@
-// Whenever a rate limiter makes a decision, this is the structure of the result.
+// Whenever a rate limiter makes a decision, this is the structure of the result
 export interface RateLimitResult {
   allowed: boolean;
   remaining: number;

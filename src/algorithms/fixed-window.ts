@@ -1,3 +1,6 @@
+// this is fixed window algorithm
+
+
 import {
   RateLimiter,
   RateLimitResult

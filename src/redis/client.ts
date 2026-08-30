@@ -1,3 +1,4 @@
+// this is the redis part of the distributed rate limiter
 import { createClient } from "redis";
 
 // creates our Node.js Redis client
