@@ -7,6 +7,10 @@ import {
   redisClient
 } from "../redis/client.js";
 
+import {
+  fixedWindowScript
+} from "../redis/scripts.js";
+
 export class FixedWindowLimiter implements RateLimiter {
   private readonly limit: number;
   private readonly windowSeconds: number;
@@ -20,17 +24,7 @@ export class FixedWindowLimiter implements RateLimiter {
     const redisKey = `rate:${key}`;
 
     const result = await redisClient.eval(
-      `
-      local current = redis.call("INCR", KEYS[1])
-
-      if current == 1 then
-          redis.call("EXPIRE", KEYS[1], ARGV[1])
-      end
-
-      local ttl = redis.call("TTL", KEYS[1])
-
-      return { current, ttl }
-      `,
+      fixedWindowScript,
       {
         keys: [redisKey],
         arguments: [this.windowSeconds.toString()]

@@ -1,39 +1,45 @@
-import { connectRedis, redisClient } from "./redis/client.js";
-import { FixedWindowLimiter } from "./algorithms/fixed-window.js";
+import express from "express";
+
+import {
+  connectRedis,
+  redisClient
+} from "./redis/client.js";
+
+import {
+  FixedWindowLimiter
+} from "./algorithms/fixed-window.js";
+
+import {
+  rateLimit
+} from "./middleware/rate-limit.js";
 
 async function main() {
   await connectRedis();
 
+  const app = express();
+
   const limiter = new FixedWindowLimiter(5, 60);
 
-  const key = "concurrent-user";
-
-  await redisClient.del(`rate:${key}`);
-
-  const requests = Array.from(
-    { length: 20 },
-    () => limiter.allow(key)
+  app.get(
+    "/api/test",
+    rateLimit(limiter),
+    (req, res) => {
+      res.json({
+        message: "Request successful"
+      });
+    }
   );
 
-  const results = await Promise.all(requests);
+  const PORT = 3000;
 
-  results.forEach((result, index) => {
-    console.log(`Request ${index + 1}:`, result);
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 
-  const allowed = results.filter(
-    result => result.allowed
-  ).length;
-
-  const blocked = results.filter(
-    result => !result.allowed
-  ).length;
-
-  console.log("\nSummary:");
-  console.log("Allowed:", allowed);
-  console.log("Blocked:", blocked);
-
-  await redisClient.quit();
+  process.on("SIGINT", async () => {
+    await redisClient.quit();
+    process.exit(0);
+  });
 }
 
 main();
