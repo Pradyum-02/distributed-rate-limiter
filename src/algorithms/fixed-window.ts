@@ -9,7 +9,7 @@ import {
 
 import {
   fixedWindowScript
-} from "../redis/scripts.js";
+} from "../redis/scripts.ts";
 
 export class FixedWindowLimiter implements RateLimiter {
   private readonly limit: number;
@@ -33,17 +33,22 @@ export class FixedWindowLimiter implements RateLimiter {
 
     const [count, ttl] = result as [number, number];
 
+    const resetAt =
+      Math.floor(Date.now() / 1000) + ttl;
+
     if (count > this.limit) {
       return {
         allowed: false,
         remaining: 0,
-        retryAfter: ttl
+        retryAfter: ttl,
+        resetAt
       };
     }
 
     return {
       allowed: true,
-      remaining: this.limit - count
+      remaining: this.limit - count,
+      resetAt
     };
   }
 }

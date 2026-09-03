@@ -1,45 +1,24 @@
-import express from "express";
-
-import {
-  connectRedis,
-  redisClient
-} from "./redis/client.js";
-
-import {
-  FixedWindowLimiter
-} from "./algorithms/fixed-window.js";
-
-import {
-  rateLimit
-} from "./middleware/rate-limit.js";
+import { connectRedis, redisClient } from "./redis/client.js";
+import { SlidingWindowLogLimiter } from "./algorithms/sliding-window-log.js";
 
 async function main() {
   await connectRedis();
 
-  const app = express();
+  const limiter = new SlidingWindowLogLimiter(5, 60);
 
-  const limiter = new FixedWindowLimiter(5, 60);
+  const key = "inspect-test";
 
-  app.get(
-    "/api/test",
-    rateLimit(limiter),
-    (req, res) => {
-      res.json({
-        message: "Request successful"
-      });
-    }
-  );
+  await redisClient.del(`rate:log:${key}`);
+  await redisClient.del(`rate:log:seq:${key}`);
 
-  const PORT = 3000;
+  for (let i = 1; i <= 5; i++) {
+    console.log(
+      `Request ${i}:`,
+      await limiter.allow(key)
+    );
+  }
 
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-
-  process.on("SIGINT", async () => {
-    await redisClient.quit();
-    process.exit(0);
-  });
+  await redisClient.quit();
 }
 
 main();

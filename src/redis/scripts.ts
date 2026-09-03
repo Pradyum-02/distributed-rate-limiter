@@ -9,3 +9,8 @@ export const fixedWindowScript = readFileSync(
   path.join(__dirname, "scripts", "fixed-window.lua"),
   "utf-8"
 );
+
+export const slidingWindowLogScript = readFileSync(
+  path.join(__dirname, "scripts", "sliding-window-log.lua"),
+  "utf-8"
+);
