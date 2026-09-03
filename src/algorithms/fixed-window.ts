@@ -1,6 +1,3 @@
-// this is fixed window algorithm
-
-
 import {
   RateLimiter,
   RateLimitResult
@@ -22,18 +19,27 @@ export class FixedWindowLimiter implements RateLimiter {
   async allow(key: string): Promise<RateLimitResult> {
     const redisKey = `rate:${key}`;
 
-    const count = await redisClient.incr(redisKey);
+    const result = await redisClient.eval(
+      `
+      local current = redis.call("INCR", KEYS[1])
 
-    if (count === 1) {
-      await redisClient.expire(
-        redisKey,
-        this.windowSeconds
-      );
-    }
+      if current == 1 then
+          redis.call("EXPIRE", KEYS[1], ARGV[1])
+      end
+
+      local ttl = redis.call("TTL", KEYS[1])
+
+      return { current, ttl }
+      `,
+      {
+        keys: [redisKey],
+        arguments: [this.windowSeconds.toString()]
+      }
+    );
+
+    const [count, ttl] = result as [number, number];
 
     if (count > this.limit) {
-      const ttl = await redisClient.ttl(redisKey);
-
       return {
         allowed: false,
         remaining: 0,
